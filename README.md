@@ -83,9 +83,9 @@ This project focuses on important JavaScript concepts such as:
 
 You can view the project here:
 
-[https://your-username.github.io/tic-tac-toe/]([https://your-username.github.io/tic-tac-toe/](https://davidjulian0805.github.io/Project-Tic-Tac-Toe/))
+[[https://davidjulian0805.github.io/Project-Tic-Tac-Toe/](https://davidjulian0805.github.io/Project-Tic-Tac-Toe/))](https://davidjulian0805.github.io/Project-Tic-Tac-Toe/)
 
-*(Replace with your GitHub Pages link.)*
+
 
 ---
 
