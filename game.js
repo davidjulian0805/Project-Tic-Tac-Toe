@@ -1,79 +1,228 @@
-    const Gameboard = (() => {
+const Gameboard = (() => {
 
-        let board = ['', '', '', '', '', '', '','', ''];
+    //array for board 
+    let board = ['', '', '', '', '', '', '','', ''];
 
-        
-    function getBoard (){
-        return board;
-    }
+function getBoard(){
+    return board;
+}
 
+//place x or o marker and returning false if the board has a marker
+const placeMarker = (index, marker) => {
+        if(board[index] !== ''){
+            return false;
+        }
+            board[index] = marker;
+            return true;
+}
 
-    const placeMarker = (index, marker) => {
-            if(board[index] !== ''){
-                return false;
-            }
+//deleting the boards content if user clicked reset button
+const reset = () => {
+    board = ['', '', '', '', '', '', '', '', ''];
+}
 
-                board[index] = marker;
-                return true;
-    }
+//check if there is winner or tie
+const checkWinner = () => {
+    const winLines = [
+        [0,1,2], [3,4,5], [6,7,8],
+        [0,3,6], [1,4,7], [2,5,8],
+        [0,4,8], [2,4,6]
+    ];
 
-    const  reset = () => {
-        board = ['', '', '', '', '', '', '', '', ''];
-    }
-
-
-
-
-
-    return { 
-        getBoard,
-        placeMarker,
-        reset
-    };
-
-
-    })();
-
-    const Player = (name, marker) => {
-        const getName = () => name;
-        const getMarker = () => marker;
-
-        return {
-            getName,
-            getMarker
-        };
-
-    }
-
-
-    const GameController = (() => {
-        let players = [];
-        let currentIndex = 0;
-        let gameOver = false;
+    for (const [a, b, c] of winLines) {
+        if (board[a] !== '' && board[a] === board[b] && board[a] === board[c]) {
+            return { marker: board[a], line: [a, b, c] };
+        }
+    } 
 
     
-
-
-        const startGame = (p1, p2) =>  {
-                players = [p1, p2];
-                currentIndex = 0;
-                gameOver = false;
-
+    if (board.every(cell => cell !== '')) {
+        return {
+             marker: 'tie', 
+             line: [] 
             
+            };
+    }
+    return null;
+}
+
+//retrun every function. IIFE is used
+return {
+    getBoard,
+    placeMarker,
+    reset,
+    checkWinner
+};
+
+})();
+
+//Uses factory function that creates player objects. Each player has a name and marker(X or O)
+const Player = (name, marker) => {
+    const getName = () => name;
+    const getMarker = () => marker;
+
+    return { getName, getMarker };
+}
+
+//handles whose turn it is
+const GameController = (() => {
+    let players = [];
+    let currentIndex = 0;
+    let gameOver = false;
+
+    const startGame = (p1, p2) => {
+        players = [p1, p2];
+        currentIndex = 0;
+        gameOver = false;
+    }
+
+    const getCurrentPlayer = () => players[currentIndex];
+
+
+    //function for player's move and returning result object with string in status
+    const playTurn = (index) => {
+        if(gameOver === true){
+            return { status: "over" }
         }
 
-        const getCurrentPlayer  = () => players [currentIndex];
+        const player = getCurrentPlayer();
+
+        const placed = Gameboard.placeMarker(index, player.getMarker());
+        if(!placed){
+            return {
+                 status: "invalid" 
+                }
+        }
+
+        const result = Gameboard.checkWinner();
+        if(result){
+            gameOver = true;
+            if(result.marker === 'tie') 
+                return {
+             status: 'tie' 
+            };
+
+            return { 
+                status: 'win', player, line: result.line
+             };
+        }
+
+        currentIndex = currentIndex === 0 ? 1 : 0;
+        return { 
+            status: "continue", player: getCurrentPlayer()
+         }
+    }
+
+    return{
+        startGame,
+        getCurrentPlayer,
+        playTurn
+    };
+
+})();
 
 
-        return{
-            startGame,
-            getCurrentPlayer
-        };
+//displays user's input in the game
+const DisplayController = (() => {
+
+    const p1NameInput = document.getElementById('p1name');
+    const p2NameInput = document.getElementById('p2name');
+    const resultLabel = document.getElementById('result');
+    const startBtn = document.getElementById('startbtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const labelDiv = document.getElementById('turn-indicator');
+    const boardDiv = document.getElementById('board');
+    const fieldBtns = document.querySelectorAll('.fieldBtn');
 
 
-    })();
+    const render = () => {
+        const board = Gameboard.getBoard();
+        fieldBtns.forEach((btn, index) => {
+            btn.textContent = board[index];
+            btn.disabled = board[index] !== '';
+        });
 
-    const p1 = Player('Alice', 'X');
-    const p2 = Player('Bob', 'O');
-    GameController.startGame(p1, p2);
-    console.log(GameController.getCurrentPlayer().getName()); // 'Alice'
+        const currentPlayer = GameController.getCurrentPlayer();
+        labelDiv.textContent = `${currentPlayer.getName()}'s Turn (${currentPlayer.getMarker()})`;
+    };
+
+    const handleStartGame = () => {
+        const p1Name = p1NameInput.value.trim();
+        const p2Name = p2NameInput.value.trim();
+
+        if (p1Name === '' || p2Name === '') {
+            resultLabel.textContent = 'Both players must enter their names!';
+            return;
+        }
+
+        const p1Turn = Player(p1Name, 'X');
+        const p2Turn = Player(p2Name, 'O');
+
+        Gameboard.reset();
+        GameController.startGame(p1Turn, p2Turn);
+
+        resultLabel.textContent = '';
+        render();
+    };
+
+    const handleResetGame = () => {
+        const p1Name = p1NameInput.value || 'Player 1';
+        const p2Name = p2NameInput.value || 'Player 2';
+
+        const p1Turn = Player(p1Name, 'X');
+        const p2Turn = Player(p2Name, 'O');
+
+        Gameboard.reset();
+        GameController.startGame(p1Turn, p2Turn);
+
+        resultLabel.textContent = '';
+        render();
+    };
+
+    const handleBoardClick = (e) => {
+        if (!e.target.classList.contains('fieldBtn')) return;
+
+        const index = Array.from(fieldBtns).indexOf(e.target);
+        const result = GameController.playTurn(index);
+
+        if (result.status === 'invalid') {
+            resultLabel.textContent = 'Square already taken!';
+            return;
+        }
+
+        if (result.status === 'over') {
+            resultLabel.textContent = 'Game is over!';
+            return;
+        }
+
+        // ✅ Only render (update turn label) when the game continues
+        if (result.status === 'continue') {
+            render();
+            return;
+        }
+
+        // ✅ For win/tie: update board display without overwriting result label
+        const board = Gameboard.getBoard();
+        fieldBtns.forEach((btn, index) => {
+            btn.textContent = board[index];
+            btn.disabled = true; // disable all on game end
+        });
+
+        if (result.status === 'win') {
+            labelDiv.textContent = '';
+            resultLabel.textContent = `${result.player.getName()} wins!`;
+        }
+
+        if (result.status === 'tie') {
+            labelDiv.textContent = '';
+            resultLabel.textContent = "It's a tie!";
+        }
+    };
+
+    startBtn.addEventListener('click', handleStartGame);
+    resetBtn.addEventListener('click', handleResetGame);
+    boardDiv.addEventListener('click', handleBoardClick);
+
+    return { render, handleStartGame, handleResetGame, handleBoardClick };
+
+})();
