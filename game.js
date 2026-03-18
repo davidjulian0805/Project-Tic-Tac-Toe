@@ -133,8 +133,19 @@ const DisplayController = (() => {
     const labelDiv = document.getElementById('turn-indicator');
     const boardDiv = document.getElementById('board');
     const fieldBtns = document.querySelectorAll('.fieldBtn');
+   const p1ScoreDisplay = document.getElementById('p1score');
+    const p2ScoreDisplay = document.getElementById('p2score');
+    const tieScoreDisplay = document.getElementById('tieScore');
 
+        // variable to track the scores of the players
+      let scores = { p1: 0, p2: 0, ties: 0 };
 
+      //update the players score to scoreboard
+        const updateScoreboard = (p1Name, p2Name) => {
+        p1ScoreDisplay.textContent = `${p1Name}: ${scores.p1}`;
+        p2ScoreDisplay.textContent = `${p2Name}: ${scores.p2}`;
+        tieScoreDisplay.textContent = scores.ties;
+    };
     const render = () => {
         const board = Gameboard.getBoard();
         fieldBtns.forEach((btn, index) => {
@@ -161,6 +172,9 @@ const DisplayController = (() => {
         Gameboard.reset();
         GameController.startGame(p1Turn, p2Turn);
 
+        scores = { p1: 0, p2: 0, ties: 0 };
+        updateScoreboard(p1Name, p2Name);
+
         resultLabel.textContent = '';
         render();
     };
@@ -174,6 +188,8 @@ const DisplayController = (() => {
 
         Gameboard.reset();
         GameController.startGame(p1Turn, p2Turn);
+
+         updateScoreboard(p1Name, p2Name);
 
         resultLabel.textContent = '';
         render();
@@ -195,13 +211,15 @@ const DisplayController = (() => {
             return;
         }
 
-        // ✅ Only render (update turn label) when the game continues
+        //only render (update turn label) when the game continues
         if (result.status === 'continue') {
             render();
             return;
         }
 
-        // ✅ For win/tie: update board display without overwriting result label
+
+        
+        //update board display without overwriting result label
         const board = Gameboard.getBoard();
         fieldBtns.forEach((btn, index) => {
             btn.textContent = board[index];
@@ -209,13 +227,47 @@ const DisplayController = (() => {
         });
 
         if (result.status === 'win') {
+            const winnerName = result.player.getName();
+            const p1Name = p1NameInput.value || 'Player 1';
+            const p2Name = p2NameInput.value || 'Player 2';
+
+            if (winnerName === p1Name) {
+                scores.p1++;
+            } else {
+                scores.p2++;
+            }
+
+            updateScoreboard(p1Name, p2Name);
             labelDiv.textContent = '';
-            resultLabel.textContent = `${result.player.getName()} wins!`;
+            resultLabel.textContent = `${winnerName} wins!`;
+            
+            //auto reset the board if someone wins for next round
+        setTimeout(() => {
+        Gameboard.reset();
+        GameController.startGame(Player(p1Name, 'X'), Player(p2Name, 'O'));
+        resultLabel.textContent = '';
+        render();
+    }, 
+    1000);
         }
 
         if (result.status === 'tie') {
+            scores.ties++;
+            const p1Name = p1NameInput.value || 'Player 1';
+            const p2Name = p2NameInput.value || 'Player 2';
+            updateScoreboard(p1Name, p2Name);
+
             labelDiv.textContent = '';
             resultLabel.textContent = "It's a tie!";
+
+            //auto reset the board if the game is tie
+                setTimeout(() => {
+        Gameboard.reset();
+        GameController.startGame(Player(p1Name, 'X'), Player(p2Name, 'O'));
+        resultLabel.textContent = '';
+        render();
+    }, 
+    1000);
         }
     };
 
